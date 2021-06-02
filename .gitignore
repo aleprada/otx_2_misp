@@ -1,0 +1,16 @@
+#virtualenv
+/venv
+#build
+/build
+
+#config
+/config/config_prod.ini
+
+#pychar metadata
+.idea/
+
+.pyc
+*.pyo
+.cpython
+__pycache__/
+/test/.pytest_cache

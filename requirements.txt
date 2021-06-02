@@ -1,0 +1,3 @@
+OTXv2==1.5.12
+pymisp==2.4.143
+python_dateutil==2.8.1
