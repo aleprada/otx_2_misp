@@ -54,30 +54,86 @@ def create_event(misp):
     return event
 
 
-def send2misp(tweet, proxy_usage):
+def check_if_empty_att(att):
+    empty = False
+    if type(att) == list and len(att) == 0:
+        empty = True
+    elif (att is None) or (att is " ") or (att is ''):
+        empty = True
+    else:
+        empty = False
+
+    return empty
+
+
+def send2misp(pulse, proxy_usage):
     url = config_parser("misp", "url")
     api_key = config_parser("misp", "api_key")
     misp = misp_connection(url, api_key, proxy_usage)
     event = create_event(misp)
     event.add_tag("OTX")
-    event.info = "[OTX] New threat discovered on OTX-AT&T"
-    event.add_attribute('twitter-id', tweet.user.screen_name)
-    event.add_attribute('other', tweet.text)
-    event.add_attribute('other', tweet.created_at.strftime("%Y-%m-%dT%H:%M:%S"))
-    if 'hashtags' in tweet.entities:
-        for h in tweet.entities['hashtags']:
-            event.add_attribute('other', h['text'])
-    if 'urls' in tweet.entities:
-        for h in tweet.entities['urls']:
-            event.add_attribute('link', h['url'])
+    event.info = pulse['name']
+    event.add_attribute('other', "This Pulse was created on:" + pulse['created'])
+    if pulse['modified']:
+        event.add_attribute('other', "This Pulse was edited on:" + pulse['created'])
+
+    tlp = "tlp:"+pulse['tlp']
+    misp.tag(event, tlp)
+    if len(pulse['tags']) > 0:
+        for t in pulse['tags']:
+            misp.tag(event, t)
+
+    if not check_if_empty_att(pulse['description']):
+        event.add_attribute("other", "Description: "+ pulse['description'])
+    if not check_if_empty_att(pulse['malware_families']):
+        event.add_attribute("other", "Malware families: " + str(pulse['malware_families']))
+    if not check_if_empty_att(pulse['targeted_countries']):
+        event.add_attribute("other", "targeted countries: " + str(pulse['targeted_countries']))
+    if not check_if_empty_att(pulse['adversary']):
+        event.add_attribute("other", "Adversary: " + pulse['adversary'])
+
+    if not check_if_empty_att(pulse['attack_ids']):
+        event.add_attribute("other", "MITRE ATT&CK techniques used: " + str(pulse['attack_ids']))
+    if not check_if_empty_att(pulse['references']):
+        for r in pulse['references']:
+            event.add_attribute("link", r)
+
+    for ioc in pulse['indicators']:
+        if ioc['type'] == 'IPv4' or ioc['type'] == 'IPv6':
+            event.add_attribute("ip-src", ioc['title'])
+        elif ioc['type'] == 'domain':
+            event.add_attribute("domain", ioc['indicator'])
+        elif ioc['type'] == 'YARA':
+            event.add_attribute("yara", ioc['content'])
+        elif ioc['type'] == 'hostname':
+            event.add_attribute("hostname", ioc['indicator'])
+        elif ioc['type'] == 'email':
+            event.add_attribute("email", ioc['indicator'])
+        elif ioc['type'] == 'URL':
+            event.add_attribute("url", ioc['indicator'])
+        elif ioc['type'] == 'MUTEX':
+            event.add_attribute("mutex", ioc['indicator'])
+        elif ioc['type'] == 'CVE':
+            event.add_attribute("other", "CVE: "+ioc['indicator'])
+        elif ioc['type'] == 'FileHash-MD5':
+            event.add_attribute("md5", ioc['indicator'])
+        elif ioc['type'] == 'FileHash-SHA1':
+            event.add_attribute("sha1", ioc['indicator'])
+        elif ioc['type'] == 'FileHash-SHA256':
+            event.add_attribute("sha256", ioc['indicator'])
+        elif ioc['type'] == 'FileHash-PEHASH':
+            event.add_attribute("pehash", ioc['indicator'])
+        elif ioc['type'] == 'FileHash-IMPHASH':
+            event.add_attribute("imphash", ioc['indicator'])
+
     event = misp.add_event(event, pythonify=True)
     print("\t [*] Event with ID " + str(event.id) + " has been successfully stored.")
 
 
-def check_att(key, att):
+def show_att(key, att):
     if type(att) == list and len(att) == 0:
         print("\t\t [-] " + key + ": " + "Unknown")
-    elif (att is not None) and (not att) and (att is not " ") and (att is not ''):
+    elif (att is not None) and (att is not " ") and (att is not ''):
         print("\t\t [-] "+key+": " + str(att))
     else:
         print("\t\t [-] "+key+": " + "Unknown")
@@ -120,11 +176,11 @@ def show_pulse(pulse):
     print("\t\t [-] Title: " + pulse['name'])
     print("\t\t [-] ID: " + pulse['id'])
     print("\t\t [-] TLP: " + pulse['tlp'])
-    check_att("Description", pulse['description'])
-    check_att("Malware families", pulse['malware_families'])
-    check_att("Targeted countries", pulse['targeted_countries'])
-    check_att("Adversary", pulse['adversary'])
-    check_att("ATT&CK Techniques", pulse['attack_ids'])
+    show_att("Description", pulse['description'])
+    show_att("Malware families", pulse['malware_families'])
+    show_att("Targeted countries", pulse['targeted_countries'])
+    show_att("Adversary", pulse['adversary'])
+    show_att("ATT&CK Techniques", pulse['attack_ids'])
     show_tags(pulse["tags"])
     show_references(pulse['references'])
     print("\t\t [-] IoCs associated with this pulse:")
@@ -222,8 +278,8 @@ def start_listen_otx():
             if args.proxy:
                 proxy_usage = True
             print("[*] Sending alerts to MISP")
-            '''for t in pulses:
-                send2misp(t, proxy_usage)'''
+            for t in pulses:
+                send2misp(t, proxy_usage)
         sys.exit(0)
     elif args.techniques:
         print("[*] Checking if the pulses gathered gathered contain any ATT&CK Technique from your list.")
@@ -232,8 +288,8 @@ def start_listen_otx():
             if args.proxy:
                 proxy_usage = True
             print("[*] Sending alerts to MISP")
-            '''for t in pulses:
-                send2misp(t, proxy_usage)'''
+            for t in pulses:
+                send2misp(t, proxy_usage)
         sys.exit(0)
 
     else:

@@ -5,6 +5,7 @@
 
 #config
 /config/config_prod.ini
+/config/config.ini
 
 #pychar metadata
 .idea/

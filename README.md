@@ -24,4 +24,4 @@ To Be Defined
 
 Gathering IoCs from OTX.
 ```bash 
-python main.py
+python otx2misp.py
