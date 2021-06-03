@@ -12,7 +12,7 @@ import os
 def config_parser(section, key):
     config = configparser.ConfigParser()
     try:
-        config.read(os.path.join(os.path.dirname(__file__)+"/config/config.ini"))
+        config.read(os.getcwd()+"/config/config.ini")
         result = config.get(section, key)
         return result
     except config.NoOptionError:
@@ -22,7 +22,8 @@ def config_parser(section, key):
 
 
 def load_file(filename):
-    with open(os.path.dirname(__file__)+"/config/"+filename, "r") as ins:
+    print(os.getcwd())
+    with open(os.getcwd() + "/config/" + filename, "r") as ins:
         array = []
         for line in ins:
             array.append(line.strip())
