@@ -22,7 +22,6 @@ def config_parser(section, key):
 
 
 def load_file(filename):
-    print(os.getcwd())
     with open(os.getcwd() + "/config/" + filename, "r") as ins:
         array = []
         for line in ins:
@@ -209,8 +208,8 @@ def filter_pulse_by_keyword(pulse, keywords_list):
 
 def search_on_otx(api, alerts, techniques, max_days):
     pulse_list = []
-    keywords_list = load_file("keywords.txt")
-    techniques_list = load_file("attack_ids.txt")
+    keywords_list = load_file("keywords_test.txt")
+    techniques_list = load_file("attack_ids_test.txt")
     today = date.today()
     date_today = today.strftime("%Y-%m-%d")
     now = parse(date_today)
